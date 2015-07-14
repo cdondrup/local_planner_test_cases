@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="test_cases" type="distance_calc.py" name="distance_calc" output="screen" respawn="true"/>
+  <node pkg="test_cases" type="scenario_server.py" name="scenario_server" output="screen"/>
+</launch>
