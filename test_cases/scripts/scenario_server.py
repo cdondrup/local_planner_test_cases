@@ -31,6 +31,7 @@ class ScenarioServer(object):
     _human_success = True
     _min_distance_to_human = 1000.0
     _loaded = False
+    _move_human = True
     _robot_poses = []
 
     def __init__(self, name):
@@ -56,12 +57,16 @@ class ScenarioServer(object):
     def move_human(self):
         pub = rospy.Publisher("/human/motion", Twist, queue_size=1)
         r = rospy.Rate(10)
-        while not rospy.is_shutdown() and self._human_velocity != None:
+        while not rospy.is_shutdown() and self._human_velocity != None and self._move_human:
             twist = Twist()
             twist.angular.z = self._human_velocity["angular"]["z"]
             twist.linear.x = self._human_velocity["linear"]["x"]
             pub.publish(twist)
             r.sleep()
+        twist = Twist()
+        twist.angular.z = 0.0
+        twist.linear.x = 0.0
+        pub.publish(twist)
 
     def _connect_port(self, port):
         """ Establish the connection with the given MORSE port"""
@@ -121,7 +126,7 @@ class ScenarioServer(object):
             return EmptyResponse()
 
         self.client.cancel_all_goals()
-        self._human_velocity = None
+        self._move_human = False
         if self._move_human_thread: self._move_human_thread.join()
 
         sock = self._connect_port(PORT)
@@ -166,6 +171,7 @@ class ScenarioServer(object):
         rospy.Subscriber("/human_robot_distance", Float64, self.human_callback)
         self._robot_poses = []
         rospy.Subscriber("/robot_pose", Pose, self.robot_callback)
+        self._move_human = True
         self._move_human_thread = Thread(target=self.move_human, args=())
         self._move_human_thread.start()
         t = time.time()
