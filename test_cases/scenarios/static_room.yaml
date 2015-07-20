@@ -1,0 +1,33 @@
+robot_start_pose:
+    position: 
+        x: -0.46
+        y: -3.36
+        z: 0.01
+    orientation: 
+        x: 0.0
+        y: 0.0
+        z: 0.704927386262
+        w: 0.70927947954
+robot_end_pose:
+    position: 
+        x: -0.46
+        y: 3.92
+        z: 0.01
+    orientation: 
+        x: 0.0
+        y: 0.0
+        z: 0.704927386262
+        w: 0.70927947954
+human_start_pose:
+    position: 
+        x: -0.46
+        y: 0.00
+        z: 0.01
+    orientation: 
+        x: 0.0
+        y: 0.0
+        z: -0.704927386262
+        w: 0.70927947954
+success_metrics:
+    nav_timeout: 120.0
+    human_distance: 1.22
