@@ -13,12 +13,13 @@ from std_srvs.srv import Empty, EmptyResponse
 from std_msgs.msg import Float64
 import yaml
 import numpy as np
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose
 import actionlib
 import actionlib_msgs
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from test_cases.srv import Load, LoadResponse, Run, RunResponse
 from roslib.packages import find_resource
+import time
 
 HOST = '127.0.0.1'
 PORT = 4000
@@ -27,7 +28,9 @@ PORT = 4000
 class ScenarioServer(object):
     _id = 0
     _human_success = True
+    _min_distance_to_human = 1000.0
     _loaded = False
+    _robot_poses = []
 
     def __init__(self, name):
         rospy.loginfo("Starting static wall scenario")
@@ -43,6 +46,10 @@ class ScenarioServer(object):
 
     def human_callback(self, msg):
         self._human_success = msg.data > self._min_distance if self._human_success else False
+        self._min_distance_to_human = msg.data if msg.data < self._min_distance_to_human else self._min_distance_to_human
+
+    def robot_callback(self, msg):
+        self._robot_poses.append(msg)
 
     def _connect_port(self, port):
         """ Establish the connection with the given MORSE port"""
@@ -142,10 +149,32 @@ class ScenarioServer(object):
 
         self._human_success = True
         rospy.Subscriber("/human_robot_distance", Float64, self.human_callback)
+        self._robot_poses = []
+        rospy.Subscriber("/robot_pose", Pose, self.robot_callback)
+        t = time.time()
         self.client.send_goal_and_wait(self._goal, execute_timeout=rospy.Duration(self._timeout))
+        elapsed = time.time() - t
+        print elapsed
         res = self.client.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED
         self.client.cancel_all_goals()
-        return RunResponse(nav_success=res, human_success=self._human_success)
+        distance = self.get_distance_travelled(self._robot_poses)
+        return RunResponse(
+            nav_success=res,
+            human_success=self._human_success,
+            min_distance_to_human=self._min_distance_to_human,
+            distance_travelled=distance,
+            travel_time=elapsed,
+            mean_speed=distance/elapsed
+        )
+
+    def get_distance_travelled(self, poses):
+        distance = 0.0
+        for idx in range(len(poses))[1:]:
+            distance += np.sqrt(
+                [((poses[idx].position.x - poses[idx-1].position.x)**2) \
+                + ((poses[idx].position.y - poses[idx-1].position.y)**2)]
+            )
+        return distance
 
     def load_scenario(self, req):
         conf_file = find_resource("test_cases", req.scenario+".yaml")[0]
