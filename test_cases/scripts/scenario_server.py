@@ -13,13 +13,14 @@ from std_srvs.srv import Empty, EmptyResponse
 from std_msgs.msg import Float64
 import yaml
 import numpy as np
-from geometry_msgs.msg import PoseWithCovarianceStamped, Pose
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, Twist
 import actionlib
 import actionlib_msgs
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from test_cases.srv import Load, LoadResponse, Run, RunResponse
 from roslib.packages import find_resource
 import time
+from threading import Thread
 
 HOST = '127.0.0.1'
 PORT = 4000
@@ -43,6 +44,7 @@ class ScenarioServer(object):
         self.client.wait_for_server()
         rospy.loginfo(" ... done")
         rospy.loginfo("All done")
+        self._move_human_thread = None
 
     def human_callback(self, msg):
         self._human_success = msg.data > self._min_distance if self._human_success else False
@@ -50,6 +52,16 @@ class ScenarioServer(object):
 
     def robot_callback(self, msg):
         self._robot_poses.append(msg)
+
+    def move_human(self):
+        pub = rospy.Publisher("/human/motion", Twist, queue_size=1)
+        r = rospy.Rate(10)
+        while not rospy.is_shutdown() and self._human_velocity != None:
+            twist = Twist()
+            twist.angular.z = self._human_velocity["angular"]["z"]
+            twist.linear.x = self._human_velocity["linear"]["x"]
+            pub.publish(twist)
+            r.sleep()
 
     def _connect_port(self, port):
         """ Establish the connection with the given MORSE port"""
@@ -109,6 +121,9 @@ class ScenarioServer(object):
             return EmptyResponse()
 
         self.client.cancel_all_goals()
+        self._human_velocity = None
+        if self._move_human_thread: self._move_human_thread.join()
+
         sock = self._connect_port(PORT)
         if not sock:
                 sys.exit(1)
@@ -151,6 +166,8 @@ class ScenarioServer(object):
         rospy.Subscriber("/human_robot_distance", Float64, self.human_callback)
         self._robot_poses = []
         rospy.Subscriber("/robot_pose", Pose, self.robot_callback)
+        self._move_human_thread = Thread(target=self.move_human, args=())
+        self._move_human_thread.start()
         t = time.time()
         self.client.send_goal_and_wait(self._goal, execute_timeout=rospy.Duration(self._timeout))
         elapsed = time.time() - t
@@ -207,6 +224,13 @@ class ScenarioServer(object):
         self._min_distance = conf["success_metrics"]["human_distance"]
         self._loaded = True
         self.reset(None)
+
+        # Has to be last so reset doesn't override it
+        try:
+            self._human_velocity = conf["human_velocity"]
+        except KeyError:
+            self._human_velocity = None
+
         return LoadResponse()
 
 if __name__ == "__main__":
