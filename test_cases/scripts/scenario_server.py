@@ -154,7 +154,6 @@ class ScenarioServer(object):
         t = time.time()
         self.client.send_goal_and_wait(self._goal, execute_timeout=rospy.Duration(self._timeout))
         elapsed = time.time() - t
-        print elapsed
         res = self.client.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED
         self.client.cancel_all_goals()
         distance = self.get_distance_travelled(self._robot_poses)
