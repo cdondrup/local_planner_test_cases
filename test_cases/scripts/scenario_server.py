@@ -36,14 +36,13 @@ class ScenarioServer(object):
 
     def __init__(self, name):
         rospy.loginfo("Starting static wall scenario")
-        rospy.Service("~load", Load, self.load_scenario)
-        rospy.Service("~reset", Empty, self.reset)
-        rospy.Service("~start", Run, self.start)
-
         rospy.loginfo("Starting move_base client...")
         self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         self.client.wait_for_server()
         rospy.loginfo(" ... done")
+        rospy.Service("~load", Load, self.load_scenario)
+        rospy.Service("~reset", Empty, self.reset)
+        rospy.Service("~start", Run, self.start)
         rospy.loginfo("All done")
         self._move_human_thread = None
 
