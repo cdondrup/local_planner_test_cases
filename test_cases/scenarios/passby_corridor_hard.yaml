@@ -1,7 +1,7 @@
 robot_start_pose:
     position: 
-        x: 7.00
-        y: -4.50
+        x: 8.00
+        y: -4.3
         z: 0.1
     orientation: 
         x: 0.0
@@ -11,7 +11,7 @@ robot_start_pose:
 robot_end_pose:
     position: 
         x: 20.00
-        y: -4.50
+        y: -4.3
         z: 0.1
     orientation: 
         x: 0.0
@@ -21,7 +21,7 @@ robot_end_pose:
 human_start_pose:
     position: 
         x: 20.00
-        y: -4.50
+        y: -4.3
         z: 0.1
     orientation: 
         x: 0.0
@@ -38,5 +38,5 @@ human_velocity:
         y: 0.0
         z: 0.0
 success_metrics:
-    nav_timeout: 120.0
-    human_distance: 1.0
+    nav_timeout: 40.0
+    human_distance: .5

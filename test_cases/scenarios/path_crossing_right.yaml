@@ -38,5 +38,5 @@ human_velocity:
         y: 0.0
         z: 0.0
 success_metrics:
-    nav_timeout: 120.0
-    human_distance: 1.0
+    nav_timeout: 50.0
+    human_distance: 0.8

@@ -21,6 +21,7 @@ from test_cases.srv import Load, LoadResponse, Run, RunResponse
 from roslib.packages import find_resource
 import time
 from threading import Thread
+from bayes_people_tracker.msg import PeopleTracker
 
 HOST = '127.0.0.1'
 PORT = 4000
@@ -29,7 +30,6 @@ PORT = 4000
 class ScenarioServer(object):
     _id = 0
     _human_success = True
-    _min_distance_to_human = 1000.0
     _loaded = False
     _move_human = True
     _robot_poses = []
@@ -47,8 +47,9 @@ class ScenarioServer(object):
         self._move_human_thread = None
 
     def human_callback(self, msg):
-        self._human_success = msg.data > self._min_distance if self._human_success else False
-        self._min_distance_to_human = msg.data if msg.data < self._min_distance_to_human else self._min_distance_to_human
+        dist = msg.min_distance
+        self._human_success = dist > self._min_distance if self._human_success else False
+        self._min_distance_to_human = dist if dist < self._min_distance_to_human else self._min_distance_to_human
 
     def robot_callback(self, msg):
         self._robot_poses.append(msg)
@@ -167,14 +168,16 @@ class ScenarioServer(object):
             return RunResponse(False, False)
 
         self._human_success = True
-        rospy.Subscriber("/human_robot_distance", Float64, self.human_callback)
+        self._min_distance_to_human = 1000.0
+        rospy.Subscriber("/people_tracker/positions", PeopleTracker, self.human_callback)
         self._robot_poses = []
         rospy.Subscriber("/robot_pose", Pose, self.robot_callback)
+        self.client.send_goal(self._goal)
         self._move_human = True
         self._move_human_thread = Thread(target=self.move_human, args=())
         self._move_human_thread.start()
         t = time.time()
-        self.client.send_goal_and_wait(self._goal, execute_timeout=rospy.Duration(self._timeout))
+        self.client.wait_for_result(timeout=rospy.Duration(self._timeout))
         elapsed = time.time() - t
         res = self.client.get_state() == actionlib_msgs.msg.GoalStatus.SUCCEEDED
         self.client.cancel_all_goals()
