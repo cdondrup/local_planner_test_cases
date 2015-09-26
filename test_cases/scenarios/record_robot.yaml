@@ -1,0 +1,5 @@
+waypoints:
+    - WayPoint1
+success_metrics:
+    nav_timeout: 400.0
+    human_distance: .5
