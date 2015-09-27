@@ -66,9 +66,7 @@ class ScenarioServer(object):
         self.client.cancel_all_goals()
 
         g = GotoNodeGoal()
-        self._waypoint_cnt += 1
-        self._waypoint_cnt = self._waypoint_cnt % len(self._waypoints)
-        g.target = self._waypoints[self._waypoint_cnt]
+        g.target = self._waypoints["start"]
         g.no_orientation = False
         self.client.send_goal_and_wait(g)
 
@@ -82,16 +80,11 @@ class ScenarioServer(object):
 
         self._human_success = True
         self._min_distance_to_human = 1000.0
-        self._waypoint_cnt += 1
-        self._waypoint_cnt = self._waypoint_cnt % len(self._waypoints)
         rospy.Subscriber("/people_tracker/positions", PeopleTracker, self.human_callback)
         self._robot_poses = []
         rospy.Subscriber("/robot_pose", Pose, self.robot_callback)
         g = GotoNodeGoal()
-        current_node = rospy.wait_for_message('/current_node', String)
-        self._waypoint_cnt = self._waypoint_cnt + 1 if current_node == self._waypoints[self._waypoint_cnt] else self._waypoint_cnt
-        self._waypoint_cnt = self._waypoint_cnt % len(self._waypoints)
-        g.target = self._waypoints[self._waypoint_cnt]
+        g.target = self._waypoints["end"]
         g.no_orientation = True
         self.client.send_goal(g)
         t = time.time()
@@ -126,7 +119,6 @@ class ScenarioServer(object):
         rospy.loginfo(" ... done")
 
         self._waypoints = conf["waypoints"]
-        self._waypoint_cnt = 0
 
         self._timeout = conf["success_metrics"]["nav_timeout"]
         self._min_distance = conf["success_metrics"]["human_distance"]
