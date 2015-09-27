@@ -66,6 +66,8 @@ class ScenarioServer(object):
         self.client.cancel_all_goals()
 
         g = GotoNodeGoal()
+        self._waypoint_cnt += 1
+        self._waypoint_cnt = self._waypoint_cnt % len(self._waypoints)
         g.target = self._waypoints[self._waypoint_cnt]
         g.no_orientation = False
         self.client.send_goal_and_wait(g)
